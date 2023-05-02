@@ -8,7 +8,7 @@
 
 > 这里是使用该 API 的示例站点
 
-- [今日热榜 - https://hot.imsyy.top/](https://hot.imsyy.top/)
+- [今日热榜 - https://hot.yingzitt.com/](https://hot.yingzitt.com/)
 
 ## 总览
 
@@ -59,7 +59,7 @@ pnpm start
 > 获取数据只需在域名后面加上上方列表中的调用名称即可
 
 ```http
-GET https://api-hot.imsyy.top/bilibili/
+GET https://api-hot.yingzitt.com/bilibili/
 ```
 
 <details>
@@ -114,7 +114,7 @@ GET https://api-hot.imsyy.top/bilibili/
 > 获取最新数据只需在原链接后面加上 `/new`，这样就会直接从服务端拉取最新数据，不会从本地缓存中读取
 
 ```http
-GET https://api-hot.imsyy.top/bilibili/new
+GET https://api-hot.yingzitt.com/bilibili/new
 ```
 
 <details>
