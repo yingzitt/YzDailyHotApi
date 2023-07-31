@@ -1,61 +1,82 @@
+/*
+ * @author: WangPeng
+ * @date: 2023-07-11 16:41:48
+ * @customEditors: imsyy
+ * @lastEditTime: 2023-07-11 16:03:12
+ */
+
 const Router = require("koa-router");
-const krRouter = new Router();
+const douyinMusicRouter = new Router();
 const axios = require("axios");
 const { get, set, del } = require("../utils/cacheData");
 
 // 接口信息
 const routerInfo = {
-  name: "36kr",
-  title: "36氪",
-  subtitle: "热榜",
+  name: "douyin",
+  title: "抖音",
+  subtitle: "热歌榜",
 };
 
 // 缓存键名
-const cacheKey = "krData";
+const cacheKey = "douyinMusicData";
 
 // 调用时间
 let updateTime = new Date().toISOString();
 
 // 调用路径
-const url = "https://gateway.36kr.com/api/mis/nav/home/nav/rank/hot";
+const url = "https://aweme.snssdk.com/aweme/v1/chart/music/list/";
+const HEADERS = {
+  "user-agent": "okhttp3",
+};
+const QUERIES = {
+  device_platform: "android",
+  version_name: "13.2.0",
+  version_code: "130200",
+  aid: "1128",
+  chart_id: "6853972723954146568",
+  count: "100",
+};
 
 // 数据处理
 const getData = (data) => {
   if (!data) return [];
-  return data.map((v) => {
-    return {
-      id: v.itemId,
-      title: v.templateMaterial.widgetTitle,
-      pic: v.templateMaterial.widgetImage,
-      owner: v.templateMaterial.authorName,
-      hot: v.templateMaterial.statRead,
-      data: v.templateMaterial,
-      url: `https://www.36kr.com/p/${v.itemId}`,
-      mobileUrl: `https://www.36kr.com/p/${v.itemId}`,
-    };
-  });
+  try {
+    return data.map((v) => {
+      const item = v.music_info;
+      return {
+        id: item.id,
+        title: item.title,
+        album: item.album,
+        artist: item.author,
+        pic: item?.cover_large.url_list[0],
+        lyric: item.lyric_url,
+        url: item.play_url.uri,
+        mobileUrl: item.play_url.uri,
+        // h5Url: item.matched_song?.h5_url,
+      };
+    });
+  } catch (error) {
+    console.error("数据处理出错" + error);
+    return [];
+  }
 };
 
-// 36氪热榜
-krRouter.get("/36kr", async (ctx) => {
-  console.log("获取36氪热榜");
+// 抖音热歌榜
+douyinMusicRouter.get("/douyin_music", async (ctx) => {
+  console.log("获取抖音热歌榜");
   try {
     // 从缓存中获取数据
     let data = await get(cacheKey);
     const from = data ? "cache" : "server";
     if (!data) {
       // 如果缓存中不存在数据
-      console.log("从服务端重新获取36氪热榜");
+      console.log("从服务端重新获取抖音热歌榜");
       // 从服务器拉取数据
-      const response = await axios.post(url, {
-        partner_id: "wap",
-        param: {
-          siteId: 1,
-          platformId: 2,
-        },
-        timestamp: new Date().getTime(),
+      const response = await axios.get(url, {
+        headers: HEADERS,
+        params: QUERIES,
       });
-      data = getData(response.data.data.hotRankList);
+      data = getData(response.data.music_list);
       updateTime = new Date().toISOString();
       // 将数据写入缓存
       await set(cacheKey, data);
@@ -79,22 +100,18 @@ krRouter.get("/36kr", async (ctx) => {
   }
 });
 
-// 36氪热榜 - 获取最新数据
-krRouter.get("/36kr/new", async (ctx) => {
-  console.log("获取36氪热榜 - 最新数据");
+// 抖音热歌榜 - 获取最新数据
+douyinMusicRouter.get("/douyin_music/new", async (ctx) => {
+  console.log("获取抖音热歌榜 - 最新数据");
   try {
     // 从服务器拉取最新数据
-    const response = await axios.post(url, {
-      partner_id: "wap",
-      param: {
-        siteId: 1,
-        platformId: 2,
-      },
-      timestamp: new Date().getTime(),
+    const response = await axios.get(url, {
+      headers: HEADERS,
+      params: QUERIES,
     });
-    const newData = getData(response.data.data.hotRankList);
+    const newData = getData(response.data.word_list);
     updateTime = new Date().toISOString();
-    console.log("从服务端重新获取36氪热榜");
+    console.log("从服务端重新获取抖音热歌榜");
 
     // 返回最新数据
     ctx.body = {
@@ -134,5 +151,5 @@ krRouter.get("/36kr/new", async (ctx) => {
   }
 });
 
-krRouter.info = routerInfo;
-module.exports = krRouter;
+douyinMusicRouter.info = routerInfo;
+module.exports = douyinMusicRouter;

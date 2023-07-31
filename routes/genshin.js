@@ -1,61 +1,53 @@
 const Router = require("koa-router");
-const krRouter = new Router();
+const genshinRouter = new Router();
 const axios = require("axios");
 const { get, set, del } = require("../utils/cacheData");
 
 // 接口信息
 const routerInfo = {
-  name: "36kr",
-  title: "36氪",
-  subtitle: "热榜",
+  name: "genshin",
+  title: "原神",
+  subtitle: "最新信息",
 };
 
 // 缓存键名
-const cacheKey = "krData";
+const cacheKey = "genshinData";
 
 // 调用时间
 let updateTime = new Date().toISOString();
 
 // 调用路径
-const url = "https://gateway.36kr.com/api/mis/nav/home/nav/rank/hot";
+const url =
+  "https://content-static.mihoyo.com/content/ysCn/getContentList?pageSize=50&pageNum=1&channelId=10";
 
 // 数据处理
 const getData = (data) => {
   if (!data) return [];
   return data.map((v) => {
     return {
-      id: v.itemId,
-      title: v.templateMaterial.widgetTitle,
-      pic: v.templateMaterial.widgetImage,
-      owner: v.templateMaterial.authorName,
-      hot: v.templateMaterial.statRead,
-      data: v.templateMaterial,
-      url: `https://www.36kr.com/p/${v.itemId}`,
-      mobileUrl: `https://www.36kr.com/p/${v.itemId}`,
+      id: v.id,
+      title: v.title,
+      pic: v.ext[1]?.value[0]?.url,
+      start_time: v?.start_time,
+      url: `https://ys.mihoyo.com/main/news/detail/${v.id}`,
+      mobileUrl: `https://ys.mihoyo.com/main/m/news/detail/${v.id}`,
     };
   });
 };
 
-// 36氪热榜
-krRouter.get("/36kr", async (ctx) => {
-  console.log("获取36氪热榜");
+// 原神最新信息
+genshinRouter.get("/genshin", async (ctx) => {
+  console.log("获取原神最新信息");
   try {
     // 从缓存中获取数据
     let data = await get(cacheKey);
     const from = data ? "cache" : "server";
     if (!data) {
       // 如果缓存中不存在数据
-      console.log("从服务端重新获取36氪热榜");
+      console.log("从服务端重新获取原神最新信息");
       // 从服务器拉取数据
-      const response = await axios.post(url, {
-        partner_id: "wap",
-        param: {
-          siteId: 1,
-          platformId: 2,
-        },
-        timestamp: new Date().getTime(),
-      });
-      data = getData(response.data.data.hotRankList);
+      const response = await axios.get(url);
+      data = getData(response.data.data.list);
       updateTime = new Date().toISOString();
       // 将数据写入缓存
       await set(cacheKey, data);
@@ -79,22 +71,15 @@ krRouter.get("/36kr", async (ctx) => {
   }
 });
 
-// 36氪热榜 - 获取最新数据
-krRouter.get("/36kr/new", async (ctx) => {
-  console.log("获取36氪热榜 - 最新数据");
+// 原神最新信息 - 获取最新数据
+genshinRouter.get("/genshin/new", async (ctx) => {
+  console.log("获取原神最新信息 - 最新数据");
   try {
     // 从服务器拉取最新数据
-    const response = await axios.post(url, {
-      partner_id: "wap",
-      param: {
-        siteId: 1,
-        platformId: 2,
-      },
-      timestamp: new Date().getTime(),
-    });
-    const newData = getData(response.data.data.hotRankList);
+    const response = await axios.get(url);
+    const newData = getData(response.data.data.list);
     updateTime = new Date().toISOString();
-    console.log("从服务端重新获取36氪热榜");
+    console.log("从服务端重新获取原神最新信息");
 
     // 返回最新数据
     ctx.body = {
@@ -134,5 +119,5 @@ krRouter.get("/36kr/new", async (ctx) => {
   }
 });
 
-krRouter.info = routerInfo;
-module.exports = krRouter;
+genshinRouter.info = routerInfo;
+module.exports = genshinRouter;
